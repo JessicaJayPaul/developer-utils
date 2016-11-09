@@ -88,16 +88,7 @@ public class DateUtil {
      * @param type SECOND秒；MINUTE分；HOUR小时；DAY天；
      */
     public static Date addTime(Date date, int duration, long type) {
-        long longTime = 0;
-        if (type == SECOND) {
-            longTime = duration * SECOND;
-        } else if (type == MINUTE) {
-            longTime = duration * MINUTE;
-        } else if (type == HOUR) {
-            longTime = duration * HOUR;
-        } else if (type == DAY) {
-            longTime = duration * DAY;
-        }
+        long longTime = duration * type;
         return new Date(date.getTime() + longTime);
     }
     
@@ -128,17 +119,8 @@ public class DateUtil {
      * @param type SECOND秒；MINUTE分；HOUR小时；DAY天；
      */
     public static double getDuration(Date firstDate, Date secondDate, long type, int accuracy) {
-        double value = 0;
         double longTime = (secondDate.getTime() - firstDate.getTime()) * 1.0;
-        if (type == SECOND) {
-            value = longTime / SECOND;
-        } else if (type == MINUTE) {
-            value = longTime / MINUTE;
-        } else if (type == HOUR) {
-            value = longTime / HOUR;
-        } else if (type == DAY) {
-            value = longTime / DAY;
-        }
+        double value = longTime / type;
         BigDecimal b = new BigDecimal(value);
         return b.setScale(accuracy, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
