@@ -99,13 +99,4 @@ public class HttpUtil {
         // 去掉最后一个&
         return builder.substring(0, builder.length() -  1);
     }
-    
-    /**
-     * 当做java application测试
-     */
-    public static void main(String[] args) {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("wd", "hello");
-        System.out.print(doGet("http://www.baidu.com", map));
-    }
 }
