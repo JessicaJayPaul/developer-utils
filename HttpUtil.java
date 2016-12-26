@@ -4,15 +4,22 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 /**
+ * 
  * @author caojiantao
  * http操作工具类
  */
 public class HttpUtil {
+    
+    public static final String DEFAULT_ENCODE = "UTF-8";
+    
+    public static final String LINE_SEPARATOR = "line.separator";
 
     /**
      * 发起get请求，获取返回文本信息
@@ -31,7 +38,7 @@ public class HttpUtil {
             }
             connection = (HttpURLConnection) new URL(url).openConnection();
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
                 String line = null;
                 while ((line = reader.readLine()) != null) {
                     builder.append(line);
@@ -39,7 +46,7 @@ public class HttpUtil {
                 reader.close();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            return e.getMessage();
         } finally{
             if (connection != null) {
                 connection.disconnect();
@@ -60,23 +67,23 @@ public class HttpUtil {
             connection.setDoInput(true);
             // post请求必须设置此项
             connection.setDoOutput(true);
-            connection.setUseCaches(false);
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), "UTF-8"));
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), DEFAULT_ENCODE));
             writer.write(getParamter(map));
             writer.flush();
             writer.close();
             System.out.println(connection.getResponseCode());
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 // 获取返回数据
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
                 String line = null;
                 while ((line = reader.readLine()) != null) {
                     builder.append(line);
+                    builder.append(System.getProperty(LINE_SEPARATOR));
                 }
                 reader.close();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            return e.getMessage();
         } finally{
             if (connection != null) {
                 connection.disconnect();
@@ -89,6 +96,9 @@ public class HttpUtil {
      * 将封装的map参数转换为String字符串，以便写入输出流中
      */
     public static String getParamter(Map<String, String> map){
+        if (map == null || map.isEmpty()) {
+            return "";
+        }
         StringBuilder builder = new StringBuilder();
         for (Entry<String, String> entry : map.entrySet()) {
             builder.append(entry.getKey());
@@ -97,6 +107,6 @@ public class HttpUtil {
             builder.append("&");
         }
         // 去掉最后一个&
-        return builder.substring(0, builder.length() -  1);
+        return builder.substring(0, builder.length() - 1);
     }
 }
