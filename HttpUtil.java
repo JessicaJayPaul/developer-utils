@@ -4,17 +4,10 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-/**
- * 
- * @author caojiantao
- * http操作工具类
- */
 public class HttpUtil {
     
     public static final String DEFAULT_ENCODE = "UTF-8";
@@ -42,17 +35,18 @@ public class HttpUtil {
                 String line = null;
                 while ((line = reader.readLine()) != null) {
                     builder.append(line);
+    				builder.append(System.getProperty(LINE_SEPARATOR));
                 }
                 reader.close();
             }
         } catch (Exception e) {
-            return e.getMessage();
+            e.printStackTrace();
         } finally{
             if (connection != null) {
                 connection.disconnect();
             }
         }
-        return builder.toString();
+		return builder.toString();
     }
     
     /**
@@ -83,13 +77,13 @@ public class HttpUtil {
                 reader.close();
             }
         } catch (Exception e) {
-            return e.getMessage();
+            e.printStackTrace();
         } finally{
             if (connection != null) {
                 connection.disconnect();
             }
         }
-        return builder.toString();
+		return builder.toString();
     }
     
     /**
@@ -109,4 +103,10 @@ public class HttpUtil {
         // 去掉最后一个&
         return builder.substring(0, builder.length() - 1);
     }
+    
+    public static void main(String[] args) {
+    	Map<String, String> map = new HashMap<String, String>();
+    	map.put("name", "wulitao");
+    	System.out.print(getParamter(map));
+	}
 }

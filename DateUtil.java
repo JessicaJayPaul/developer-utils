@@ -7,48 +7,63 @@ import java.util.Date;
 public class DateUtil {
 
     /**
-     * Ãë
+     * ç§’
      */
     public static final long SECOND = 1000;
 
     /**
-     * ·Ö
+     * åˆ†
      */
     public static final long MINUTE = SECOND * 60;
 
     /**
-     * Ğ¡Ê±
+     * å°æ—¶
      */
     public static final long HOUR = MINUTE * 60;
 
     /**
-     * Ìì
+     * å¤©
      */
     public static final long DAY = HOUR * 24;
     
     /**
-     * ½âÎöÈÕÆÚ£¬µÃµ½×Ö·û´®£¬Ä¬ÈÏ¸ñÊ½Îªyyyy-MM-dd
+     * é»˜è®¤æ—¥æœŸæ ¼å¼åŒ–ç¼–ç 
+     */
+    public static final String DEFAULT_DATE = "yyyy-MM-dd";
+
+    /**
+     * é»˜è®¤æ—¶é—´æ ¼å¼åŒ–ç¼–ç 
+     */
+    public static final String DEFAULT_DATE_TIME = "yyyy-MM-dd HH:mm:ss";
+    
+    /**
+     * é»˜è®¤å°æ•°ç²¾åº¦
+     */
+    public static final int ACCURACY = 2;
+    
+    /**
+     * è§£ææ—¥æœŸï¼Œå¾—åˆ°å­—ç¬¦ä¸²ï¼Œé»˜è®¤æ ¼å¼ä¸ºyyyy-MM-dd
      */
     public static String parseDate(Date date){
-        return parseDate(date, "yyyy-MM-dd");
+        return parseDate(date, DEFAULT_DATE);
     }
 
     /**
-     * ½âÎöÈÕÆÚ£¬µÃµ½×Ö·û´®
+     * è§£ææ—¥æœŸï¼Œå¾—åˆ°å­—ç¬¦ä¸²
      */
     public static String parseDate(Date date, String format) {
         return new SimpleDateFormat(format).format(date);
     }
     
     /**
-     * ½âÎö×Ö·û´®£¬µÃµ½ÈÕÆÚ£¬Ä¬ÈÏ¸ñÊ½Îªyyyy-MM-dd
+     * è§£æå­—ç¬¦ä¸²ï¼Œå¾—åˆ°æ—¥æœŸï¼Œé»˜è®¤æ ¼å¼ä¸ºyyyy-MM-dd
      */
     public static Date parseStr(String str){
-        return parseStr(str, "yyyy-MM-dd");
+        return parseStr(str, DEFAULT_DATE);
     }
     
     /**
-     * ½âÎö×Ö·û´®£¬µÃµ½ÈÕÆÚ
+     * è§£æå­—ç¬¦ä¸²ï¼Œå¾—åˆ°æ—¥æœŸ
      */
     public static Date parseStr(String dateStr, String format){
         Date date = null;
@@ -61,22 +76,25 @@ public class DateUtil {
     }
 
     /**
-     * »ñÈ¡ĞÇÆÚ£¬Ä¬ÈÏ¸ñÊ½Îªyyyy-MM-dd
+     * è·å–æ˜ŸæœŸï¼Œé»˜è®¤æ ¼å¼ä¸ºyyyy-MM-dd
      */
     public static String getWeek(String dateStr) {
-        return getWeek(dateStr, "yyyy-MM-dd");
+        return getWeek(dateStr, DEFAULT_DATE);
     }
     
+    /**
+     * è·å–æ˜ŸæœŸ
+     */
     public static String getWeek(String dateStr, String format) {
         Date date = parseStr(dateStr, format);
         return getWeek(date);
     }
 
     /**
-     * »ñÈ¡ĞÇÆÚ
+     * è·å–æ˜ŸæœŸ
      */
     public static String getWeek(Date date) {
-        String[] weekOfDays = { "ĞÇÆÚÈÕ", "ĞÇÆÚÒ»", "ĞÇÆÚ¶ş", "ĞÇÆÚÈı", "ĞÇÆÚËÄ", "ĞÇÆÚÎå", "ĞÇÆÚÁù" };
+        String[] weekOfDays = { "æ˜ŸæœŸæ—¥", "æ˜ŸæœŸä¸€", "æ˜ŸæœŸäºŒ", "æ˜ŸæœŸä¸‰", "æ˜ŸæœŸå››", "æ˜ŸæœŸäº”", "æ˜ŸæœŸå…­" };
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         int w = calendar.get(Calendar.DAY_OF_WEEK) - 1;
@@ -84,8 +102,8 @@ public class DateUtil {
     }
 
     /**
-     * Ôö¼ÓÖ¸¶¨Ê±³¤
-     * @param type SECONDÃë£»MINUTE·Ö£»HOURĞ¡Ê±£»DAYÌì£»
+     * å¢åŠ æŒ‡å®šæ—¶é•¿
+     * @param type SECONDç§’ï¼›MINUTEåˆ†ï¼›HOURå°æ—¶ï¼›DAYå¤©ï¼›
      */
     public static Date addTime(Date date, int duration, long type) {
         long longTime = duration * type;
@@ -93,15 +111,15 @@ public class DateUtil {
     }
     
     public static double getDuration(String firstDateStr, String secondDateStr, long type){
-        return getDuration(firstDateStr, secondDateStr, type, "yyyy-MM-dd HH:mm:ss");
+        return getDuration(firstDateStr, secondDateStr, type, DEFAULT_DATE_TIME);
     }
 
     public static double getDuration(String firstDateStr, String secondDateStr, long type, String format){
-        return getDuration(firstDateStr, secondDateStr, type, format, 2);
+        return getDuration(firstDateStr, secondDateStr, type, format, ACCURACY);
     }
     
     public static double getDuration(String firstDateStr, String secondDateStr, long type, int accuracy){
-        return getDuration(firstDateStr, secondDateStr, type, "yyyy-MM-dd HH:mm:ss", accuracy);
+        return getDuration(firstDateStr, secondDateStr, type, DEFAULT_DATE_TIME, accuracy);
     }
 
     public static double getDuration(String firstDateStr, String secondDateStr, long type, String format, int accuracy){
@@ -111,12 +129,12 @@ public class DateUtil {
     }
 
     public static double getDuration(Date firstDate, Date secondDate, long type){
-        return getDuration(firstDate, secondDate, type, 2);
+        return getDuration(firstDate, secondDate, type, ACCURACY);
     }
     
     /**
-     * µÃµ½Á½¸öÊ±¼ä¼ä¸ô£¬ÀàĞÍ¿É¹©Ñ¡Ôñ£¨ËÄÉáÎåÈë£¬Ä¬ÈÏ¾«È·µ½Á½Î»Ğ¡Êı£©
-     * @param type SECONDÃë£»MINUTE·Ö£»HOURĞ¡Ê±£»DAYÌì£»
+     * å¾—åˆ°ä¸¤ä¸ªæ—¶é—´é—´éš”ï¼Œç±»å‹å¯ä¾›é€‰æ‹©ï¼ˆå››èˆäº”å…¥ï¼Œé»˜è®¤ç²¾ç¡®åˆ°ä¸¤ä½å°æ•°ï¼‰
+     * @param type SECONDç§’ï¼›MINUTEåˆ†ï¼›HOURå°æ—¶ï¼›DAYå¤©ï¼›
      */
     public static double getDuration(Date firstDate, Date secondDate, long type, int accuracy) {
         double longTime = (secondDate.getTime() - firstDate.getTime()) * 1.0;
@@ -125,12 +143,15 @@ public class DateUtil {
         return b.setScale(accuracy, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
     
+    /**
+     * åˆ¤æ–­æ˜¯å¦ä¸ºé—°å¹´
+     */
     public static boolean isLeapYear(String year){
         return isLeapYear(Integer.parseInt(year));
     }
     
     /**
-     * ÅĞ¶ÏÊÇ·ñÎªÈòÄê
+     * åˆ¤æ–­æ˜¯å¦ä¸ºé—°å¹´
      */
     public static boolean isLeapYear(int year) {
         return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
