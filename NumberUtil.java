@@ -22,4 +22,11 @@ public class NumberUtil {
         BigDecimal b = new BigDecimal(num);
         return b.setScale(accuracy, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
+
+    /**
+     * 是否为奇数
+     */
+    public static boolean isOdd(int value){
+        return ((value & 1) != 0);
+    }
 }
