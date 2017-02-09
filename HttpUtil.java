@@ -2,9 +2,10 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
+import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -35,7 +36,7 @@ public class HttpUtil {
                 String line = null;
                 while ((line = reader.readLine()) != null) {
                     builder.append(line);
-    				builder.append(System.getProperty(LINE_SEPARATOR));
+                    builder.append(System.getProperty(LINE_SEPARATOR));
                 }
                 reader.close();
             }
@@ -46,7 +47,7 @@ public class HttpUtil {
                 connection.disconnect();
             }
         }
-		return builder.toString();
+        return builder.toString();
     }
     
     /**
@@ -58,7 +59,6 @@ public class HttpUtil {
         try {
             connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setRequestMethod("POST");
-            connection.setDoInput(true);
             // post请求必须设置此项
             connection.setDoOutput(true);
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), DEFAULT_ENCODE));
@@ -83,30 +83,26 @@ public class HttpUtil {
                 connection.disconnect();
             }
         }
-		return builder.toString();
+        return builder.toString();
     }
     
     /**
-     * 将封装的map参数转换为String字符串，以便写入输出流中
+     * 将封装的map参数转换为字符串，以便写入输出流中
+     * @throws UnsupportedEncodingException 
      */
-    public static String getParamter(Map<String, String> map){
+    public static String getParamter(Map<String, String> map) throws UnsupportedEncodingException{
         if (map == null || map.isEmpty()) {
             return "";
         }
         StringBuilder builder = new StringBuilder();
+        // encode下字符串，避免参数含有特殊字符
         for (Entry<String, String> entry : map.entrySet()) {
-            builder.append(entry.getKey());
+            builder.append(URLEncoder.encode(entry.getKey(), DEFAULT_ENCODE));
             builder.append("=");
-            builder.append(entry.getValue());
+            builder.append(URLEncoder.encode(entry.getValue(), DEFAULT_ENCODE));
             builder.append("&");
         }
         // 去掉最后一个&
         return builder.substring(0, builder.length() - 1);
     }
-    
-    public static void main(String[] args) {
-    	Map<String, String> map = new HashMap<String, String>();
-    	map.put("name", "wulitao");
-    	System.out.print(getParamter(map));
-	}
 }
