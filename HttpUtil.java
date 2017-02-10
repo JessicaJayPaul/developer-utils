@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
@@ -23,6 +24,10 @@ public class HttpUtil {
     }
     
     public static String doGet(String url, Map<String, String> map){
+        return doGet(url, map, null);
+    }
+    
+    public static String doGet(String url, Map<String, String> map, Map<String, String> propertyMap){
         HttpURLConnection connection = null;
         // 使用StringBuilder避免在while循环体中多次创建String对象而浪费资源
         StringBuilder builder = new StringBuilder();
@@ -31,15 +36,8 @@ public class HttpUtil {
                 url = url + "?" + getParamter(map);
             }
             connection = (HttpURLConnection) new URL(url).openConnection();
-            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
-                String line = null;
-                while ((line = reader.readLine()) != null) {
-                    builder.append(line);
-                    builder.append(System.getProperty(LINE_SEPARATOR));
-                }
-                reader.close();
-            }
+            setRequestProperty(connection, propertyMap);
+            readData(connection, builder);
         } catch (Exception e) {
             e.printStackTrace();
         } finally{
@@ -54,6 +52,10 @@ public class HttpUtil {
      * 发起post请求，获取返回文本信息
      */
     public static String doPost(String url, Map<String, String> map){
+        return doPost(url, map, null);
+    }
+    
+    public static String doPost(String url, Map<String, String> map, Map<String, String> propertyMap){
         HttpURLConnection connection = null;
         StringBuilder builder = new StringBuilder();
         try {
@@ -61,21 +63,12 @@ public class HttpUtil {
             connection.setRequestMethod("POST");
             // post请求必须设置此项
             connection.setDoOutput(true);
+            setRequestProperty(connection, propertyMap);
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), DEFAULT_ENCODE));
             writer.write(getParamter(map));
             writer.flush();
             writer.close();
-            System.out.println(connection.getResponseCode());
-            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                // 获取返回数据
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
-                String line = null;
-                while ((line = reader.readLine()) != null) {
-                    builder.append(line);
-                    builder.append(System.getProperty(LINE_SEPARATOR));
-                }
-                reader.close();
-            }
+            readData(connection, builder);
         } catch (Exception e) {
             e.printStackTrace();
         } finally{
@@ -87,8 +80,19 @@ public class HttpUtil {
     }
     
     /**
+     * 设置请求参数
+     */
+    public static void setRequestProperty(HttpURLConnection connection, Map<String, String> map){
+        if (map == null || map.isEmpty()) {
+            return;
+        }
+        for (Entry<String, String> entry : map.entrySet()) {
+            connection.setRequestProperty(entry.getKey(), entry.getValue());
+        }
+    }
+    
+    /**
      * 将封装的map参数转换为字符串，以便写入输出流中
-     * @throws UnsupportedEncodingException 
      */
     public static String getParamter(Map<String, String> map) throws UnsupportedEncodingException{
         if (map == null || map.isEmpty()) {
@@ -104,5 +108,17 @@ public class HttpUtil {
         }
         // 去掉最后一个&
         return builder.substring(0, builder.length() - 1);
+    }
+    
+    public static void readData(HttpURLConnection connection, StringBuilder builder) throws UnsupportedEncodingException, IOException{
+        if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line);
+                builder.append(System.getProperty(LINE_SEPARATOR));
+            }
+            reader.close();
+        }
     }
 }
