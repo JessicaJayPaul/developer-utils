@@ -1,7 +1,7 @@
 # git-utils
 
 > 关于我，请关注  
-博客：[wulitao的博客](http://www.jiantao.site "wulitao的博客")
+博客：[wulitao的博客](http://www.wulitao.xyz "wulitao的博客")
 
 个人平时编码总结的一些常用的开发工具类，沉淀知识，高效开发。
 
@@ -15,13 +15,15 @@
 
 ##http请求
 
- 1. get请求，可附带参数，形式为map；
- 2. post请求，附带参数，形式为map；
+ 1. 支持GET/POST请求，传递参数；
+ 2. 初始化请求头部header，用于设置referer、cookie相关；
+ 3. 提供请求响应回调，用于获取set-cookie，后者是用于多线程中获取返回数据；
 
 ##文件处理
 
  1. 读取文本文件信息；
  2. 复制文件（采用文件通道）；
+ 3. 下载网络资源文件保存至本地；
 
 ##数值处理
 
