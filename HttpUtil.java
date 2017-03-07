@@ -1,20 +1,21 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpCookie;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 /**
  * HTTP工具类
  * @author wulitao
- * @date 2017年2月19日
+ * @date 2017年3月7日
  * @subscription
  */
 public class HttpUtil {
@@ -25,14 +26,39 @@ public class HttpUtil {
     public static final String DEFAULT_ENCODE = "UTF-8";
     
     /**
+     * GBK编码
+     */
+    public static final String GBK_ENCODE = "GBK";
+    
+    /**
+     * get请求
+     */
+    public static final String GET = "GET";
+    
+    /**
+     * post请求
+     */
+    public static final String POST = "POST";
+    
+    /**
+     * 服务器返回的set-cookie指令
+     */
+    public static final String SET_COOKIE = "SET-COOKIE";
+    
+    /**
+     * header中的cookie字段的key
+     */
+    public static final String COOKIE = "Cookie";
+    
+    /**
      * 系统换行符
      */
     public static final String LINE_SEPARATOR = "line.separator";
     
     /**
-     * http连接信息
+     * http访问地址
      */
-    private HttpURLConnection connection;
+    public String url;
     
     /**
      * 请求回调接口（用于获取响应头，提取保存的cookie信息）
@@ -40,9 +66,24 @@ public class HttpUtil {
     private Callback callback;
     
     /**
+     * 是否返回stream流（用于网络资源文件获取，默认为false，意指文本）
+     */
+    private boolean stream = false;
+    
+    /**
+     * 是否异步加载（开启新线程访问）
+     */
+    private boolean async = false;
+    
+    /**
      * 请求参数
      */
     private String data;
+    
+    /**
+     * 请求头部
+     */
+    private Map<String, String> header = new HashMap<String, String>();
     
     /**
      * 私有构造方法
@@ -50,7 +91,7 @@ public class HttpUtil {
     private HttpUtil(){}
     
     /**
-     * 实现类
+     * 获取示例（非单例模式）
      * @return
      */
     public static HttpUtil getInstance(){
@@ -63,13 +104,25 @@ public class HttpUtil {
      * @return
      */
     public HttpUtil connect(String url){
-        try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        this.url = url;
+        return this;
+    }
+    
+    /**
+     * 设置读取方式为stream（默认是文本）
+     * @return
+     */
+    public HttpUtil stream(){
+        stream = true;
+        return this;
+    }
+    
+    /**
+     * 设置http访问方式，采用异步加载
+     * @return
+     */
+    public HttpUtil async(){
+        async = true;
         return this;
     }
     
@@ -106,7 +159,7 @@ public class HttpUtil {
      * @return
      */
     public HttpUtil header(String key, String value){
-        connection.addRequestProperty(key, value);
+        header.put(key, value);
         return this;
     }
     
@@ -117,7 +170,7 @@ public class HttpUtil {
      * @return
      */
     public HttpUtil cookie(String key, String value){
-        connection.addRequestProperty("Cookie", key + "=" + value);
+        header.put(COOKIE, key + "=" + value);
         return this;
     }
 
@@ -132,51 +185,95 @@ public class HttpUtil {
     }
     
     /**
-     * 发起get请求，返回响应数据（String）
+     * 发起get请求，返回响应数据
      * @return
      */
-    public String get(){
-        return getResponseStr("GET");
+    public Object get(){
+        return getResponse(GET);
     }
     
     /**
-     * 发起post请求，返回相应数据（String）
+     * 发起post请求，返回相应数据
      * @return
      */
-    public String post(){
-        return getResponseStr("POST");
+    public Object post(){
+        return getResponse(POST);
     }
     
     /**
-     * 发起http访问获取响应数据
+     * 获取服务端响应
+     * @param method
+     * @param isStream
+     * @return
+     */
+    public Object getResponse(final String method){
+        if (async) {
+            // 异步加载
+            new Thread(new Runnable() {
+                
+                @Override
+                public void run() {
+                    doHttp(method);
+                }
+            }).start();
+        } else {
+            return doHttp(method);
+        }
+        return null;
+    }
+    
+    /**
+     * 具体http交互实现方法
      * @param method
      * @return
      */
-    public String getResponseStr(String method){
-        // 采用builder，
-        StringBuilder builder = new StringBuilder();
+    public Object doHttp(String method){
+        HttpURLConnection connection = null;
         try {
+            if (GET.equals(method)) {
+                // get请求拼接字符串
+                url += "?" + data;
+            }
+            connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setRequestMethod(method);
             connection.setDoOutput(true);
+            // 设置header
+            if (!header.isEmpty()) {
+                for (Entry<String, String> entry : header.entrySet()) {
+                    connection.addRequestProperty(entry.getKey(), entry.getValue());
+                }
+            }
             BufferedWriter writer;
-            if (data != null && !data.equals("")) {
-                // 传参不为空才进行赋值
+            if (data != null && !data.equals("") && POST.equals(method)) {
+                // 传参不为空且访问方式为post才进行赋值
                 writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), DEFAULT_ENCODE));
                 writer.write(data);
                 writer.flush();
                 writer.close();
             }
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
-                String line = null;
-                while ((line = reader.readLine()) != null) {
-                    builder.append(line);
-                    builder.append(System.getProperty(LINE_SEPARATOR));
+                if (stream) {
+                    // 获取资源下载stream流
+                    if (callback != null) {
+                        callback.success(connection, connection.getInputStream());
+                    }
+                    return connection.getInputStream();
+                } else {
+                    // 通常获取json文本
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
+                    String line = null;
+                    // 采用builder
+                    StringBuilder builder = new StringBuilder();
+                    while ((line = reader.readLine()) != null) {
+                        builder.append(line);
+                        builder.append(System.getProperty(LINE_SEPARATOR));
+                    }
+                    if (callback != null) {
+                        callback.success(connection, builder.toString());
+                    }
+                    reader.close();
+                    return builder.toString();
                 }
-                if (callback != null) {
-                    callback.success(connection, builder.toString());
-                }
-                reader.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -185,7 +282,7 @@ public class HttpUtil {
                 connection.disconnect();
             }
         }
-        return builder.toString();
+        return null;
     }
     
     /**
@@ -211,7 +308,6 @@ public class HttpUtil {
         return builder.toString();
     }
     
-    
     /**
      * 格式化编码
      * @param str
@@ -228,14 +324,48 @@ public class HttpUtil {
     }
 
     /**
+     * 通过指定的key值从响应头header获取对应的值
+     * @param connection
+     * @param key
+     * @return
+     */
+    public static HttpCookie getCookieByName(HttpURLConnection connection, String key){
+        HttpCookie cookie = null;
+        // 获取header信息，结构为Map<String, List<String>>
+        Map<String, List<String>> map = connection.getHeaderFields();
+        for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+            // 遍历map，获取指定的property("set-cookie")
+            if (SET_COOKIE.equalsIgnoreCase(entry.getKey())) {
+                // 获取当下的list
+                List<String> values = entry.getValue();
+                for (String value : values) {
+                    if (value.indexOf(key) != -1) {
+                        // 若存在该key，则通过分号;分离成数组
+                        String[] temps = value.split(";");
+                        for (String str : temps) {
+                            if (str.indexOf(key) != -1) {
+                                String cookieVal = str.split("=")[1];
+                                cookie = new HttpCookie(key, cookieVal);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return cookie;
+    }
+    
+    /**
      * http请求接口回调接口
      */
-    interface Callback{
+    public interface Callback{
         
         /**
          * 主要用于多线程回调
-         * @param connection
+         * @param connection 用于获取响应头cookie
+         * @param response 可能是json，亦或资源流InputStream
          */
-        void success(HttpURLConnection connection, String response);
+        void success(HttpURLConnection connection, Object response);
     }
 }
