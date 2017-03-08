@@ -15,7 +15,7 @@ import java.util.Map.Entry;
 /**
  * HTTP工具类
  * @author wulitao
- * @date 2017年3月7日
+ * @date 2017年3月8日
  * @subscription
  */
 public class HttpUtil {
@@ -76,14 +76,24 @@ public class HttpUtil {
     private boolean async = false;
     
     /**
+     * 编码格式
+     */
+    private String encode;
+    
+    /**
      * 请求参数
      */
-    private String data;
+    private Map<String, String> data = new HashMap<String, String>();
     
     /**
      * 请求头部
      */
     private Map<String, String> header = new HashMap<String, String>();
+    
+    /**
+     * request cookies
+     */
+    private Map<String, String> cookies = new HashMap<String, String>();
     
     /**
      * 私有构造方法
@@ -104,7 +114,12 @@ public class HttpUtil {
      * @return
      */
     public HttpUtil connect(String url){
+        return connect(url, DEFAULT_ENCODE);
+    }
+    
+    public HttpUtil connect(String url, String encode){
         this.url = url;
+        this.encode = encode;
         return this;
     }
     
@@ -133,22 +148,7 @@ public class HttpUtil {
      * @return
      */
     public HttpUtil data(String key, String value){
-        String curData = encodeString(key) + "=" + encodeString(value);
-        if (data == null || data.equals("")) {
-            data = curData;
-        } else {
-            data += "&" + curData;
-        }
-        return this;
-    }
-    
-    /**
-     * 设置请求参数，类型为map
-     * @param map
-     * @return
-     */
-    public HttpUtil data(Map<String, String> map) {
-        data = getParamter(map);
+        data.put(key, value);
         return this;
     }
     
@@ -170,7 +170,7 @@ public class HttpUtil {
      * @return
      */
     public HttpUtil cookie(String key, String value){
-        header.put(COOKIE, key + "=" + value);
+        cookies.put(key, value);
         return this;
     }
 
@@ -232,7 +232,7 @@ public class HttpUtil {
         try {
             if (GET.equals(method)) {
                 // get请求拼接字符串
-                url += "?" + data;
+                url += "?" + getParamter(data);
             }
             connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setRequestMethod(method);
@@ -243,11 +243,15 @@ public class HttpUtil {
                     connection.addRequestProperty(entry.getKey(), entry.getValue());
                 }
             }
+            // 设置cookies
+            if (!cookies.isEmpty()) {
+                connection.addRequestProperty(COOKIE, getCookies(cookies));
+            }
             BufferedWriter writer;
             if (data != null && !data.equals("") && POST.equals(method)) {
                 // 传参不为空且访问方式为post才进行赋值
-                writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), DEFAULT_ENCODE));
-                writer.write(data);
+                writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), encode));
+                writer.write(getParamter(data));
                 writer.flush();
                 writer.close();
             }
@@ -260,7 +264,7 @@ public class HttpUtil {
                     return connection.getInputStream();
                 } else {
                     // 通常获取json文本
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), DEFAULT_ENCODE));
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), encode));
                     String line = null;
                     // 采用builder
                     StringBuilder builder = new StringBuilder();
@@ -288,15 +292,36 @@ public class HttpUtil {
     /**
      * 将封装的map参数转换为字符串，以便写入输出流中
      */
-    public static String getParamter(Map<String, String> map){
+    public String getParamter(Map<String, String> map){
+        return convertMapToStr(map, "=", "&");
+    }
+    
+    /**
+     * 将封装的map参数转换为字符串，以便写入header中
+     */
+    public String getCookies(Map<String, String> map){
+        return convertMapToStr(map, "=", ";");
+    }
+    
+    /**
+     * 变换map为string类型，指定字段分割符
+     * @param map
+     * @param firstSeparator
+     * @param secondSeparator
+     * @return
+     */
+    public String convertMapToStr(Map<String, String> map, String firstSeparator, String secondSeparator){
+        if (map.isEmpty()) {
+            return "";
+        }
         StringBuilder builder = new StringBuilder();
         // encode下字符串，避免参数含有特殊字符
         try {
             for (Entry<String, String> entry : map.entrySet()) {
-                builder.append(URLEncoder.encode(entry.getKey(), DEFAULT_ENCODE));
-                builder.append("=");
-                builder.append(URLEncoder.encode(entry.getValue(), DEFAULT_ENCODE));
-                builder.append("&");
+                builder.append(URLEncoder.encode(entry.getKey(), encode));
+                builder.append(firstSeparator);
+                builder.append(URLEncoder.encode(entry.getValue(), encode));
+                builder.append(secondSeparator);
             }
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
@@ -313,10 +338,10 @@ public class HttpUtil {
      * @param str
      * @return
      */
-    public static String encodeString(String str){
+    public String encodeString(String str){
         String result = "";
         try {
-            result = URLEncoder.encode(str, DEFAULT_ENCODE);
+            result = URLEncoder.encode(str, encode);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -339,6 +364,7 @@ public class HttpUtil {
                 // 获取当下的list
                 List<String> values = entry.getValue();
                 for (String value : values) {
+                    System.out.println(value);
                     if (value.indexOf(key) != -1) {
                         // 若存在该key，则通过分号;分离成数组
                         String[] temps = value.split(";");
