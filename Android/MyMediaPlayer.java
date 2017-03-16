@@ -1,5 +1,6 @@
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.util.Log;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -10,20 +11,44 @@ import java.util.TimerTask;
 public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, SeekBar.OnSeekBarChangeListener,
         MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener {
 
+    /**
+     * 多媒体播放器
+     */
     private MediaPlayer player;
 
+    /**
+     * 拖动条
+     */
     private SeekBar seekBar;
 
+    /**
+     * 拖动条是否正在拖动
+     */
     private boolean isTracking;
 
+    /**
+     * MediaPlayer是否已经prepare好
+     */
     private boolean isPrepared;
 
+    /**
+     * 当前SeekBar的位置
+     */
     private int seekBarPosition;
 
+    /**
+     * 上下文
+     */
     private Context context;
 
+    /**
+     * 定时器，用于定时更新SeekBar
+     */
     private Timer timer = new Timer();
 
+    /**
+     * 定时任务
+     */
     private TimerTask timerTask = new TimerTask() {
         @Override
         public void run() {
@@ -61,11 +86,12 @@ public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, See
             player = new MediaPlayer();
             try {
                 player.setDataSource(dataSource.toString());
-                player.prepare();
+                player.prepareAsync();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         } else {
+            // 资源文件地址为id int类型
             player =  MediaPlayer.create(context, (int) dataSource);
         }
     }
@@ -109,7 +135,9 @@ public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, See
 
     @Override
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
-
+        if (seekBar != null){
+            seekBar.setSecondaryProgress((int)(0.01 * percent * seekBar.getMax()));
+        }
     }
 
     @Override
