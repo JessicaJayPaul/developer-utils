@@ -15,7 +15,7 @@ import java.util.Map.Entry;
 /**
  * HTTP工具类
  * @author wulitao
- * @date 2017年3月8日
+ * @date 2017年3月7日
  * @subscription
  */
 public class HttpUtil {
@@ -230,7 +230,7 @@ public class HttpUtil {
     public Object doHttp(String method){
         HttpURLConnection connection = null;
         try {
-            if (GET.equals(method)) {
+            if (GET.equals(method) && !data.isEmpty()) {
                 // get请求拼接字符串
                 url += "?" + getParamter(data);
             }
@@ -248,7 +248,7 @@ public class HttpUtil {
                 connection.addRequestProperty(COOKIE, getCookies(cookies));
             }
             BufferedWriter writer;
-            if (data != null && !data.equals("") && POST.equals(method)) {
+            if (POST.equals(method) && !data.isEmpty()) {
                 // 传参不为空且访问方式为post才进行赋值
                 writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), encode));
                 writer.write(getParamter(data));
@@ -281,6 +281,11 @@ public class HttpUtil {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            if (callback != null) {
+                callback.failure(e);
+            }
+            return e;
+            
         } finally{
             if (connection != null) {
                 connection.disconnect();
@@ -351,10 +356,10 @@ public class HttpUtil {
     /**
      * 通过指定的key值从响应头header获取对应的值
      * @param connection
-     * @param key
+     * @param name
      * @return
      */
-    public static HttpCookie getCookieByName(HttpURLConnection connection, String key){
+    public static HttpCookie getCookieByName(HttpURLConnection connection, String name){
         HttpCookie cookie = null;
         // 获取header信息，结构为Map<String, List<String>>
         Map<String, List<String>> map = connection.getHeaderFields();
@@ -364,14 +369,13 @@ public class HttpUtil {
                 // 获取当下的list
                 List<String> values = entry.getValue();
                 for (String value : values) {
-                    System.out.println(value);
-                    if (value.indexOf(key) != -1) {
+                    if (value.contains(name)) {
                         // 若存在该key，则通过分号;分离成数组
                         String[] temps = value.split(";");
                         for (String str : temps) {
-                            if (str.indexOf(key) != -1) {
+                            if (str.contains(name)) {
                                 String cookieVal = str.split("=")[1];
-                                cookie = new HttpCookie(key, cookieVal);
+                                cookie = new HttpCookie(name, cookieVal);
                                 break;
                             }
                         }
@@ -385,7 +389,7 @@ public class HttpUtil {
     /**
      * http请求接口回调接口
      */
-    public interface Callback{
+    interface Callback{
         
         /**
          * 主要用于多线程回调
@@ -393,5 +397,11 @@ public class HttpUtil {
          * @param response 可能是json，亦或资源流InputStream
          */
         void success(HttpURLConnection connection, Object response);
+        
+        /**
+         * 访问失败回调接口
+         * @param e 异常信息
+         */
+        void failure(Exception e);
     }
 }
