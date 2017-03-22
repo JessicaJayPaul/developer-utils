@@ -1,6 +1,5 @@
 import android.content.Context;
 import android.media.MediaPlayer;
-import android.util.Log;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -66,12 +65,12 @@ public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, See
 
     public MyMediaPlayer(Context context, Object dataSource, SeekBar seekBar) {
         this.context = context;
+        this.seekBar = seekBar;
         setDataSource(dataSource);
         player.setOnBufferingUpdateListener(this);
         player.setOnCompletionListener(this);
         player.setOnErrorListener(this);
         player.setOnPreparedListener(this);
-        initSeekBar(seekBar);
     }
 
     /**
@@ -83,9 +82,11 @@ public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, See
             player.reset();
         }
         if (dataSource instanceof  String){
+            // sd卡或者网络资源url
             player = new MediaPlayer();
             try {
                 player.setDataSource(dataSource.toString());
+                // 采用异步prepare，防止阻塞线程
                 player.prepareAsync();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -98,12 +99,9 @@ public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, See
 
     /**
      * 初始化进度条信息
-     *
-     * @param seekBar 进度条
      */
-    private void initSeekBar(SeekBar seekBar) {
+    private void initSeekBar() {
         if (seekBar != null) {
-            this.seekBar = seekBar;
             seekBar.setMax(player.getDuration());
             timer.schedule(timerTask, 0, 1000);
             seekBar.setOnSeekBarChangeListener(this);
@@ -133,6 +131,13 @@ public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, See
         timer.cancel();
     }
 
+    /**
+     * 设置循环播放
+     */
+    public void setLooping(boolean isLooping){
+        player.setLooping(isLooping);
+    }
+
     @Override
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         if (seekBar != null){
@@ -158,16 +163,21 @@ public class MyMediaPlayer implements MediaPlayer.OnBufferingUpdateListener, See
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        Toast.makeText(context, "播放完成！！", Toast.LENGTH_LONG).show();
+        Toast.makeText(context, "播放完成！！", Toast.LENGTH_SHORT).show();
     }
 
+    /**
+     * 返回false指出现异常后，不断重试，返回true指事件就此终结
+     */
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
-        return false;
+        Toast.makeText(context, "出现异常！！", Toast.LENGTH_SHORT).show();
+        return true;
     }
 
     @Override
     public void onPrepared(MediaPlayer mp) {
         isPrepared = true;
+        initSeekBar();
     }
 }
