@@ -4,12 +4,14 @@ import android.graphics.BitmapFactory;
 import java.io.InputStream;
 
 /**
- * Created by caojiantao1 on 2017/3/8.
- *
+ * bitmap处理工具类，主要用于图片的压缩
  */
 public class BitmapUtil {
 
-    public static Bitmap getPropertyBitmap(InputStream is, int reqWidth, int reqHeight){
+    /**
+     * 压缩图片
+     */
+    public static Bitmap getSuitableBitmap(InputStream is, int reqWidth, int reqHeight){
         BitmapFactory.Options options = new BitmapFactory.Options();
         // 设置只解析宽高，防止OOM
         options.inJustDecodeBounds = true;
