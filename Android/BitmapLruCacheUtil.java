@@ -1,5 +1,3 @@
-package com.example.caojiantao1.myapplication;
-
 import android.graphics.Bitmap;
 import android.support.v4.util.LruCache;
 
@@ -47,8 +45,6 @@ public class BitmapLruCacheUtil {
      * 添加bitmap至LruCache
      */
     public void addBitmapToLruCache(String key, Bitmap bitmap) {
-        if (getBitmapFromLruCache(key) == null) {
-            lruCache.put(key, bitmap);
-        }
+        lruCache.put(key, bitmap);
     }
 }

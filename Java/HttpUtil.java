@@ -1,5 +1,8 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
@@ -15,7 +18,7 @@ import java.util.Map.Entry;
 /**
  * HTTP工具类
  * @author wulitao
- * @date 2017年3月7日
+ * @date 2017年3月27日
  * @subscription
  */
 public class HttpUtil {
@@ -66,9 +69,9 @@ public class HttpUtil {
     private Callback callback;
     
     /**
-     * 是否返回stream流（用于网络资源文件获取，默认为false，意指文本）
+     * 是否返回byte数组（用于网络资源文件获取，默认为false，返回json文本）
      */
-    private boolean stream = false;
+    private boolean isByteArray = false;
     
     /**
      * 是否异步加载（开启新线程访问）
@@ -127,8 +130,8 @@ public class HttpUtil {
      * 设置读取方式为stream（默认是文本）
      * @return
      */
-    public HttpUtil stream(){
-        stream = true;
+    public HttpUtil byteArray(){
+        isByteArray = true;
         return this;
     }
     
@@ -203,7 +206,6 @@ public class HttpUtil {
     /**
      * 获取服务端响应
      * @param method
-     * @param isStream
      * @return
      */
     public Object getResponse(final String method){
@@ -236,7 +238,6 @@ public class HttpUtil {
             }
             connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setRequestMethod(method);
-            connection.setDoOutput(true);
             // 设置header
             if (!header.isEmpty()) {
                 for (Entry<String, String> entry : header.entrySet()) {
@@ -247,25 +248,26 @@ public class HttpUtil {
             if (!cookies.isEmpty()) {
                 connection.addRequestProperty(COOKIE, getCookies(cookies));
             }
-            BufferedWriter writer;
             if (POST.equals(method) && !data.isEmpty()) {
                 // 传参不为空且访问方式为post才进行赋值
-                writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), encode));
+                connection.setDoOutput(true);
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), encode));
                 writer.write(getParamter(data));
                 writer.flush();
                 writer.close();
             }
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                if (stream) {
+                if (isByteArray) {
+                    byte[] bytes = getBytes(connection.getInputStream());
                     // 获取资源下载stream流
                     if (callback != null) {
-                        callback.success(connection, connection.getInputStream());
+                        callback.success(connection, bytes);
                     }
-                    return connection.getInputStream();
+                    return bytes;
                 } else {
                     // 通常获取json文本
                     BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), encode));
-                    String line = null;
+                    String line;
                     // 采用builder
                     StringBuilder builder = new StringBuilder();
                     while ((line = reader.readLine()) != null) {
@@ -385,6 +387,25 @@ public class HttpUtil {
         }
         return cookie;
     }
+
+    /**
+     * 根据InputStream获取byte数组
+     */
+    public static byte[] getBytes(InputStream is){
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            byte[] buffer = new byte[1024]; // 用数据装
+            int len;
+            while ((len = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            baos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 关闭流一定要记得。
+        return baos.toByteArray();
+    }
     
     /**
      * http请求接口回调接口
@@ -394,7 +415,7 @@ public class HttpUtil {
         /**
          * 主要用于多线程回调
          * @param connection 用于获取响应头cookie
-         * @param response 可能是json，亦或资源流InputStream
+         * @param response 可能是json，亦或资源字节数组byte[]
          */
         void success(HttpURLConnection connection, Object response);
         

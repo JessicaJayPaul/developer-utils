@@ -1,5 +1,3 @@
-package com.example.caojiantao1.myapplication;
-
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -37,7 +35,7 @@ public class DiskLruCacheUtil {
     }
 
     /**
-     * 懒汉式加载，实质还是单例模式
+     * 懒汉式加载，单例模式
      */
     public DiskLruCacheUtil with(Context context){
         if (util == null){
