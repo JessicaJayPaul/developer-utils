@@ -37,14 +37,16 @@ public class BitmapLruCacheUtil {
     /**
      * 从LruCache中取bitmap
      */
-    public Bitmap getBitmapFromLruCache(String key) {
+    public Bitmap getBitmapFromLruCache(String url) {
+        String key = EncryptUtil.encryptByMd5(url);
         return lruCache.get(key);
     }
 
     /**
      * 添加bitmap至LruCache
      */
-    public void addBitmapToLruCache(String key, Bitmap bitmap) {
+    public void addBitmapToLruCache(String url, Bitmap bitmap) {
+        String key = EncryptUtil.encryptByMd5(url);
         lruCache.put(key, bitmap);
     }
 }
