@@ -1,14 +1,11 @@
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.os.Environment;
+
+import com.example.caojiantao1.myapplication.SystemUtil;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * 磁盘缓存工具类
@@ -24,35 +21,14 @@ public class DiskLruCacheUtil {
 
     private DiskLruCache diskLruCache;
 
-    private DiskLruCacheUtil util;
-
-    private DiskLruCacheUtil(Context context){
+    public DiskLruCacheUtil(Context context){
+        File directory = SystemUtil.getDiskCacheDir(context, DIRECTORY_NAME);
+        int version = SystemUtil.getAppVersion(context);
         try {
-            diskLruCache = DiskLruCache.open(getDiskCacheDir(context, DIRECTORY_NAME), getAppVersion(context), VALUE_COUNT, CACHE_SIZE);
+            diskLruCache = DiskLruCache.open(directory, version, VALUE_COUNT, CACHE_SIZE);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    /**
-     * 懒汉式加载，单例模式
-     */
-    public DiskLruCacheUtil with(Context context){
-        if (util == null){
-            util = new DiskLruCacheUtil(context);
-        }
-        return util;
-    }
-
-    /**
-     * 添加网络图片至磁盘缓存
-     */
-    public void addNetImgToDiskLruCache(String url){
-        String key = getMD5String(url);
-        InputStream is = (InputStream) HttpUtil.getInstance().connect(url)
-                .stream()
-                .get();
-        addInputStreamToDiskLruCache(key, is);
     }
 
     /**
@@ -61,7 +37,7 @@ public class DiskLruCacheUtil {
     public InputStream getInputStreamFromDiskLruCacheByUrl(String url){
         InputStream is = null;
         if (diskLruCache != null){
-            String key = getMD5String(url);
+            String key = EncryptUtil.encryptByMd5(url);
             try {
                 DiskLruCache.Snapshot snapShot = diskLruCache.get(key);
                 if (snapShot != null){
@@ -74,11 +50,12 @@ public class DiskLruCacheUtil {
         return is;
     }
 
-    public void addInputStreamToDiskLruCache(String key, InputStream is){
+    public void addInputStreamToDiskLruCache(String url, InputStream is){
         if (diskLruCache == null){
             return;
         }
         try {
+            String key = EncryptUtil.encryptByMd5(url);
             DiskLruCache.Editor editor = diskLruCache.edit(key);
             OutputStream os = editor.newOutputStream(0);
             int len;
@@ -87,63 +64,9 @@ public class DiskLruCacheUtil {
                 os.write(buffer, 0, len);
             }
             editor.commit();
+            diskLruCache.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    /**
-     * 获取磁盘缓存文件
-     */
-    public static File getDiskCacheDir(Context context, String uniqueName) {
-        String cachePath;
-        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
-                || !Environment.isExternalStorageRemovable()) {
-            // 存在sd卡
-            cachePath = context.getExternalCacheDir().getPath();
-        } else {
-            cachePath = context.getCacheDir().getPath();
-        }
-        return new File(cachePath + File.separator + uniqueName);
-    }
-
-    /**
-     * 获取应用版本号
-     */
-    public int getAppVersion(Context context) {
-        try {
-            PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            return info.versionCode;
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-        return 1;
-    }
-
-    /**
-     * MD5加密字符串
-     */
-    public static String getMD5String(String key) {
-        String cacheKey;
-        try {
-            final MessageDigest mDigest = MessageDigest.getInstance("MD5");
-            mDigest.update(key.getBytes());
-            cacheKey = bytesToHexString(mDigest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            cacheKey = String.valueOf(key.hashCode());
-        }
-        return cacheKey;
-    }
-
-    private static String bytesToHexString(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes){
-            String hex = Integer.toHexString(0xFF & b);
-            if (hex.length() == 1) {
-                sb.append('0');
-            }
-            sb.append(hex);
-        }
-        return sb.toString();
     }
 }
