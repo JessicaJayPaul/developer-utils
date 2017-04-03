@@ -18,7 +18,7 @@ import java.util.Map.Entry;
 /**
  * HTTP工具类
  * @author wulitao
- * @date 2017年3月27日
+ * @date 2017年3月7日
  * @subscription
  */
 public class HttpUtil {
@@ -339,21 +339,6 @@ public class HttpUtil {
         }
         return builder.toString();
     }
-    
-    /**
-     * 格式化编码
-     * @param str
-     * @return
-     */
-    public String encodeString(String str){
-        String result = "";
-        try {
-            result = URLEncoder.encode(str, encode);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        return result;
-    }
 
     /**
      * 通过指定的key值从响应头header获取对应的值
@@ -365,7 +350,7 @@ public class HttpUtil {
         HttpCookie cookie = null;
         // 获取header信息，结构为Map<String, List<String>>
         Map<String, List<String>> map = connection.getHeaderFields();
-        for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+        for (Entry<String, List<String>> entry : map.entrySet()) {
             // 遍历map，获取指定的property("set-cookie")
             if (SET_COOKIE.equalsIgnoreCase(entry.getKey())) {
                 // 获取当下的list

@@ -1,6 +1,6 @@
 import android.content.Context;
 
-import com.example.caojiantao1.myapplication.SystemUtil;
+import com.wulitao.hong.io.DiskLruCache;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,7 +15,7 @@ public class DiskLruCacheUtil {
 
     private static final int VALUE_COUNT = 1;
 
-    private static final long CACHE_SIZE = 10 * 1024 * 1024;
+    private static final long CACHE_SIZE = 20 * 1024 * 1024;
 
     private static final String DIRECTORY_NAME = "bitmap";
 

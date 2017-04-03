@@ -1,5 +1,6 @@
 import android.graphics.Bitmap;
 import android.support.v4.util.LruCache;
+import android.util.Log;
 
 /**
  * 内存缓存工具类（内存管理，自动回收）

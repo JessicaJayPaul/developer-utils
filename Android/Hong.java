@@ -4,6 +4,11 @@ import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.widget.ImageView;
 
+import com.wulitao.hong.utils.BitmapLruCacheUtil;
+import com.wulitao.hong.utils.BitmapUtil;
+import com.wulitao.hong.utils.DiskLruCacheUtil;
+import com.wulitao.hong.utils.HttpUtil;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -16,6 +21,8 @@ public class Hong {
 
     private DiskLruCacheUtil diskLruCacheUtil;
 
+    private BitmapLruCacheUtil bitmapLruCacheUtil;
+
     private Object imgRes;
 
     private int width;
@@ -25,13 +32,18 @@ public class Hong {
     private Hong(){}
 
     /**
-     * 单例设计模式，懒汉式加载
+     * 单例设计模式，懒汉式加载，同时初始化内部资源（双重锁）
      */
     public static Hong with(Context context){
         if (hong == null){
-            hong = new Hong();
-            hong.resources = context.getResources();
-            hong.diskLruCacheUtil = new DiskLruCacheUtil(context);
+            synchronized (Hong.class){
+                if (hong == null){
+                    hong = new Hong();
+                    hong.resources = context.getResources();
+                    hong.diskLruCacheUtil = new DiskLruCacheUtil(context);
+                    hong.bitmapLruCacheUtil = BitmapLruCacheUtil.getInstance();
+                }
+            }
         }
         return hong;
     }
@@ -57,7 +69,7 @@ public class Hong {
         // 去项目资源取
         if (imgRes instanceof Integer){
             InputStream inputStream = resources.openRawResource(Integer.parseInt(imgRes.toString()));
-            bitmap = getBitmap(inputStream);
+            bitmap = BitmapUtil.getProperBitmap(inputStream, width, height);
             imageView.setImageBitmap(bitmap);
             return;
         }
@@ -67,49 +79,34 @@ public class Hong {
         // 去本地文件取
         if (!file.exists()){
             // 去内存缓存取
-            bitmap = BitmapLruCacheUtil.getInstance().getBitmapFromLruCache(path);
+            bitmap = bitmapLruCacheUtil.getBitmapFromLruCache(path);
             if (bitmap == null){
                 // 去磁盘缓存取
                 InputStream is = diskLruCacheUtil.getInputStreamFromDiskLruCacheByUrl(path);
                 if (is == null){
                     // 发起http请求，获取网络资源（同时添加内存缓存、磁盘缓存中）
-                    new ImageCacheTask(path, imageView).execute();
+                    new ImageCacheTask(path, imageView).execute(width, height);
                 } else {
-                    bitmap = getBitmap(is);
+                    bitmap = BitmapUtil.getProperBitmap(is, width, height);
                     // 磁盘缓存已存在，添加到内存缓存中
-                    BitmapLruCacheUtil.getInstance().addBitmapToLruCache(path, bitmap);
+                    bitmapLruCacheUtil.addBitmapToLruCache(path, bitmap);
                 }
             }
         } else{
-            bitmap = getBitmap(file);
-        }
-        imageView.setImageBitmap(bitmap);
-    }
-
-    private Bitmap getBitmap(InputStream is){
-        Bitmap bitmap;
-        if (width == 0 || height == 0){
-            bitmap = BitmapUtil.getProperBitmap(is);
-        } else {
-            bitmap = BitmapUtil.getProperBitmap(is, width, height);
-        }
-        return bitmap;
-    }
-
-    private Bitmap getBitmap(File file){
-        Bitmap bitmap;
-        if (width == 0 || height == 0){
-            bitmap = BitmapUtil.getProperBitmap(file);
-        } else {
             bitmap = BitmapUtil.getProperBitmap(file, width, height);
         }
-        return bitmap;
+        imageView.setImageBitmap(bitmap);
+
+        // 初始化全局属性
+        imgRes = "";
+        width = 0;
+        height = 0;
     }
 
     /**
      * 加载网络图片资源任务类
      */
-    private class ImageCacheTask extends AsyncTask<Void, Void, Bitmap> {
+    private class ImageCacheTask extends AsyncTask<Integer, Void, Bitmap> {
 
         private String url;
 
@@ -121,7 +118,9 @@ public class Hong {
         }
 
         @Override
-        protected Bitmap doInBackground(Void... params) {
+        protected Bitmap doInBackground(Integer... params) {
+            int width = params[0];
+            int height = params[1];
             Object response = HttpUtil.getInstance().connect(url)
                     .byteArray()
                     .get();
@@ -130,9 +129,9 @@ public class Hong {
                 return null;
             }
             byte[] bytes = (byte[]) response;
-            Bitmap bitmap = BitmapUtil.getProperBitmap(bytes);
+            Bitmap bitmap = BitmapUtil.getProperBitmap(bytes, width, height);
             // 写入内存缓存
-            BitmapLruCacheUtil.getInstance().addBitmapToLruCache(url, bitmap);
+            bitmapLruCacheUtil.addBitmapToLruCache(url, bitmap);
             // 写入磁盘缓存
             InputStream is = new ByteArrayInputStream(bytes);
             diskLruCacheUtil.addInputStreamToDiskLruCache(url, is);
